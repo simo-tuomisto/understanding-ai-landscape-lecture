@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Understanding the AI landscape</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      img {max-width: 100%;}
+      .image-80 img { width: 80%;}
+      .code-frame { width: 100%;}
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Understanding the AI coding field
+
+## RSE seminar 11.09.2026
+
+Simo Tuomisto
+
+Aalto Scientific Computing
+
+---
+
+# Getting throught the terms
+
+1. Model
+1. Filters
+1. Prompt
+1. Scaffolding
+1. Harness
+1. Tools
+1. Model context protocol (MCP)
+1. Chatbot
+1. Agent
+
+---
+
+# Model
+
+- Probabilistic next token prediction
+
+.middle[.center[![Model after single addition](./model.svg)]]
+
+---
+
+# Model
+
+- Served models usually cache calculations involving past tokens (key-value cache)
+- Only things in the **context window** are used when calculating output tokens
+- Each model has a model specific **context length** (nowadays up to 1M tokens)
+
+.middle[.center[![Model after multiple additions](./model2.svg)]]
+
+---
+
+# Model
+
+- Costs of the model usually report prices as 1M tokens for (cheapest to most expensive):
+      - Cached input
+      - Input
+      - Cached writes
+      - Output tokens
+
+.middle[.center[![Model after multiple additions](./model2.svg)]]
+
+---
+
+# Filters & routers
+
+- Between the client and the LLM there can be filters and routers
+- Filters can sanitize inputs and outputs to the models
+- Routers can send inputs and outputs to tools, logging etc.
+
+.middle[.center[![Filters & routers](./filters.svg)]]
+
+---
+
+# Prompt
+
+- Structured input that the model has been trained on
+- Prompts are nowadays really complex
+- But main things are still (in decreasing priority):
+      - system
+      - developer
+      - user
+      - assistant
+- Example: Qwen 3.8
+
+<iframe width="100%" height="350px" src="https://huggingface.co/Qwen/Qwen3.8-27B/raw/main/chat_template.jinja"></iframe>
+
+
+---
+
+# Scaffolding
+
+- Rules that the model should follow
+- A lot of this, especially the system prompt, can be determined by the server
+- Includes:
+  - System prompts
+  - Tool specifications
+  - User given directions
+  - AGENTS.md
+  - SKILLS.md
+
+---
+
+# Scaffolding
+
+- Example: How Codex manages the context 
+.middle[.center[![Codex ](https://images.ctfassets.net/kftzwdyauwt9/2CNhKAWCXaUoKJM9P2aJIV/9e5c05009e2f7500115f74e9747a3b4e/oai_Unrolling_the_Codex_agent_loop_Snapshot_1_desktop-dark.svg?w=1920&q=80)]]
+
+---
+
+# Harness
+
+- Main program loop that:
+      1. Takes users input
+      1. Formulates the scaffolding
+      1. Sends the context to the model
+      1. Based on the model output either does tool calls or further inference
+      1. Returns to the user once results have been generated
+- Switch between user control and harness is often called a **turn**
+--
+
+
+
+- Models can also do **chain-of-thought** reasoning, where they say things like "Let's think this through"
+- Model reasoning is often constrained by setting a **reasoning budget** ("Let's think step by step and use less than 10 tokens:")
+
+
+--
+
+
+- Example harnesses include: GitHub Copilot VSCode extension, Codex, Claude Code, pi, oh-my-pi, opencode, Cline, ... 
+
+---
+
+# Harness
+
+Example: How Codex multi-turn loop works
+
+.middle[.center[![](https://images.ctfassets.net/kftzwdyauwt9/7E3hMjLsKIV8DTg2YcChYl/be5f33a8e4d2aa1134b82d898be90ce7/oai_Unrolling_the_Codex_agent_loop_Multi-turn_agent_loop_desktop-dark.svg?w=1920&q=80)]]
+
+---
+# Tools
+
+- Tools are pre-defined ways for the model to interact with the world
+- The list of tools can be created on the client side or on the server side
+- Model does a tool call by adding a pre-defined string to the output
+- After model has finished generating output, harness will 
+- Examples: web search functionality, document conversion tool
+
+---
+
+# Tools
+
+Example: How Codex adds tool output
+
+
+.middle[.center[![Codex tool call](https://images.ctfassets.net/kftzwdyauwt9/673WKbsll8u4bAMZRosFJN/d8442bf08cb913a9b950d2ba6a9afc00/oai_EngBlog_Unrolling_the_Codex_agent_loop_Snapshot_2_desktop-dark.svg?w=1920&q=80)]]
+
+---
+
+# Model context protocol (MCP)
+
+- Protocol that includes client and server specifications
+- Allows AI applications to connect to external systems
+- MCP servers can house multiple tools that the AI applications can then calculating
+- Example: Letting AI do specific queries against a database
+
+---
+
+# Chatbot
+
+- Chatbot is a model that is tied to some tools, but it doesn't really have autonomy and it can't do arbitrary things
+- Example: Model with web search
+
+---
+
+# Agent
+
+- Agent is harness (muscles), scaffold (personality) and model (intelligence) tied together
+
+![Huggingface agent](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/blog/agent-glossary/agent-diagram.png)
+
+---
+
+# Demo: harness capturing
+
+
+---
+
+# Controlling agents
+
+- Agents are usually directed using AGENTS.md- and SKILLS.md-files
+- AGENTS.md specifies the agent personality and conventions it should always follow
+- SKILLS.md are optional skills that agents can read into context when necessary
+
+--
+
+- Best results usually happen when agents are given large amount of autonomy to decide how they want to operate
+- Using extensive amounts of skills or tools can bloat the context and reduce the effectiveness of the agent 
+
+
+---
+
+# Controlling agents
+
+- Security with agents is always a problematic thing:
+    - Too much freedom can cause risky side effects
+    - Too little freedom reduces the things one can do with them
+- Containerizing harnesses helps a bit
+- Hiding important things behind MCP's helps a bit as well
+
+---
+
+# References
+
+- [Huggingface's term glossary](https://huggingface.co/blog/agent-glossary#policy)
+- [Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
+- [Model Context Protocol](https://modelcontextprotocol.io)
+- [Token-budget-aware LLM reasoning](https://aclanthology.org/2025.findings-acl.1274/)
+- [AGENTS.md](https://agents.md/)
+- [Agent Skills](https://agentskills.io)
+
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
